@@ -3,12 +3,12 @@ import json
 import re
 
 
-def SpiderAttack():
+# def SpiderAttack():
 
-    headers = {
-        'user-agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.37'
-    }
 
+headers = {
+    'user-agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.37'
+}
 
 itemid = '39595400262'
 # itemid = '546495252822'
@@ -19,7 +19,7 @@ f = open(file_path, 'a+')
 for i in range(1, 11):
     try:
         url = ('https://rate.taobao.com/feedRateList.htm?auctionNumId=' +
-            itemid + '&currentPageNum={}').format(str(i))
+               itemid + '&currentPageNum={}').format(str(i))
         res = request.Request(url, method='GET', headers=headers)
         byte = request.urlopen(res).read()
         string = byte.decode('UTF-8')
