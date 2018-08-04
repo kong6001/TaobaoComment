@@ -257,11 +257,6 @@ def getRawData(file_path, raw_data):
             max_page = response_json['maxPage']
             raw_data += response_json['comments']
 
-            f = open(file_path + itemid + '/' +
-                     str(current_page) + '.txt', 'w', encoding='UTF-8')
-            f.write(string)
-            f.close()
-
         except Exception as err:
             print('抓取第{}页出现问题:'.format(current_page) + str(err))
             err_page.append(current_page)
@@ -285,21 +280,28 @@ def getRawData(file_path, raw_data):
 def main():
     if not os.path.exists(file_path + itemid):
         os.makedirs(file_path + itemid)
+
     f_output = open(file_path + itemid + '/output.txt', 'w', encoding='UTF-8')
     f_result = open(file_path + itemid + '/result.txt', 'w', encoding='UTF-8')
     f_result_review = open(file_path + itemid +
                            '/result_for_review.txt', 'w', encoding='UTF-8')
+    f_result_top = open(file_path + itemid +
+                        '/result_top.txt', 'w', encoding='UTF-8')
 
     raw_data_list = []
+    result_list = []
+
     getRawData(file_path, raw_data_list)
-    #raw_data_list = json.loads(        open(file_path+itemid+'/raw_data.json', 'r', encoding='UTF-8').read())
+    # raw_data_list = json.loads(
+    #    open(file_path+itemid+'/raw_data.json', 'r', encoding='UTF-8').read())
 
     k_max = getMaxKofD1(raw_data_list)
     a_max = getMaxAofD2(raw_data_list)
     b_max = getMaxBofD2(raw_data_list)
     useful_total_num = getTotalUsefulNum(raw_data_list)
 
-    f_output.write('共{}条评论\n'.format(len(raw_data_list)))
+    # f_output.write('共{}条评论\n'.format(len(raw_data_list)))
+    index = 1
     for each in raw_data_list:
         user_name = each['user']['nick']
         user_viplevel = each['user']['vipLevel']
@@ -337,6 +339,13 @@ def main():
         D2 = getD2(content, a_max, b_max)
         D3 = getD3(content, append_comment)
 
+        M1 = 0.2 * (H1 + H2 + H3 + H4 + H5)
+        M2 = 0.3 * D1 + 0.5 * D2 + 0.2 * D3
+
+        result = M1+0.5*M2
+        result_tuple = (result, index)
+        result_list.append(result_tuple)
+
         f_output.write('H1:'+str(H1)+'\t')
         f_output.write('H2:'+str(H2)+'\t')
         f_output.write('H3:'+str(H3)+'\t')
@@ -345,15 +354,21 @@ def main():
         f_output.write('D1:'+str(D1)+'\t')
         f_output.write('D2:'+str(D2)+'\t')
         f_output.write('D3:' + str(D3) + '\t')
+        f_output.write('M1:{}'.format(M1) + '\t')
+        f_output.write('M2:{}'.format(M2)+'\t')
+        f_output.write('result:{}'.format(result)+'\t')
         f_output.write('\n')
 
-        M1 = 0.2 * (H1 + H2 + H3 + H4 + H5)
-        M2 = 0.3 * D1 + 0.5 * D2 + 0.2 * D3
-
-        f_result.write(str(M1) + " " + str(M2) + "\n")
+        f_result.write(str(result)+'\n')
         f_result_review.write(str(round(M1, 2)) + " " +
                               str(round(M2, 2)) + "\n")
+        index += 1
 
+    result_list = sorted(result_list, reverse=True)
+    for result_tuple in result_list:
+        f_result_top.write(str(result_tuple) + '\n')
+
+    f_result_top.close()
     f_output.close()
     f_result.close()
 
