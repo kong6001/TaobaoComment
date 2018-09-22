@@ -1,0 +1,1 @@
+./fastText/fasttext skipgram -input ./fastText/result.txt -output output  -dim 100  -ws 5 -epoch 1 -minCount 1
