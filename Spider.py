@@ -26,7 +26,7 @@ def getRawData(file_path, raw_data):
             url = ('https://rate.taobao.com/feedRateList.htm?auctionNumId=' +
                    itemid + '&currentPageNum={}').format(current_page)
             res = request.Request(url, method='GET', headers=headers)
-            byte = request.urlopen(res).read()
+            byte = request.urlopen(res, timeout=10).read()
             string = byte.decode('UTF-8')
 
             string = re.sub('[\r\t\n]', '', string)
