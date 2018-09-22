@@ -6,12 +6,10 @@ import os
 import re  # 正则
 import time
 from urllib import request
+import config
 
-# itemid = '540622763937'  # 184
-# itemid = '547752478009'  # 1922
-itemid = '545828211529'  # 10567,只能爬到5000条,原因不明
-
-file_path = 'D:/taobao_comments/'
+itemid = config.itemid
+file_path = config.file_path
 
 dic_l1 = ['外观', '样子', '漂亮', '塑料', '金属', '光泽', '按键', '显示屏', '大屏',
           '不锈钢', '廉价', '样式', '空间', '大小', '容量', '高大上', '档次', '大方']
@@ -59,9 +57,9 @@ def getH1(exp):
         return 0
 
 
-def getTotalUsefulNum(raw_data_list):
+def getTotalUsefulNum(comments):
     useful = 0
-    for item in raw_data_list:
+    for item in comments:
         useful += item['useful']
     return useful
 
@@ -145,9 +143,9 @@ def getKofD1(comment, v=[0.15, 0.25, 0.2, 0.15, 0.25]):
     return k
 
 
-def getMaxKofD1(raw_data_list):
+def getMaxKofD1(comments):
     k_list = []
-    for item in raw_data_list:
+    for item in comments:
         content = item['content']
         k_list.append(getKofD1(content))
 
@@ -167,9 +165,9 @@ def getAofD2(comment, param1=0.65, param2=0.35):
     return param1 * n1 + param2 * n2
 
 
-def getMaxAofD2(raw_data_list):
+def getMaxAofD2(comments):
     A_list = []
-    for item in raw_data_list:
+    for item in comments:
         A_list.append(getAofD2(item['content']))
 
     return max(A_list)
@@ -192,9 +190,9 @@ def getBofD2(comment, v=[0.15, 0.25, 0.3, 0.5]):
     return B
 
 
-def getMaxBofD2(raw_data_list):
+def getMaxBofD2(comments):
     B_list = []
-    for item in raw_data_list:
+    for item in comments:
         B_list.append(getBofD2(item['content']))
 
     return max(B_list)
@@ -233,50 +231,6 @@ def getD3(comment, append, gamma=3, fai=10):
             return Nadd/fai
 
 
-def getRawData(file_path, raw_data):
-    headers = {
-        'user-agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.37'
-    }
-
-    current_page = 1
-    err_page = []
-
-    while 1:
-        try:
-            print('正在抓取第{}页\n'.format(current_page))
-            url = ('https://rate.taobao.com/feedRateList.htm?auctionNumId=' +
-                   itemid + '&currentPageNum={}').format(current_page)
-            res = request.Request(url, method='GET', headers=headers)
-            byte = request.urlopen(res).read()
-            string = byte.decode('UTF-8')
-
-            string = re.sub('[\r\t\n]', '', string)
-            string = string.strip(')')
-            string = string.strip('(')
-            response_json = json.loads(string)
-            max_page = response_json['maxPage']
-            raw_data += response_json['comments']
-
-        except Exception as err:
-            print('抓取第{}页出现问题:'.format(current_page) + str(err))
-            err_page.append(current_page)
-            continue
-
-        current_page = current_page+1
-        if (current_page > max_page):
-            break
-
-    print('抓取完毕\n')
-    if any(err_page):
-        print('抓取第{}页出现问题\n'.format(err_page))
-
-    f = open(file_path + itemid + '/' +
-             'raw_data.json', 'a+', encoding='UTF-8')
-    raw_data_json = json.dumps(raw_data, ensure_ascii=False)
-    f.write(raw_data_json)
-    f.close()
-
-
 def main():
     if not os.path.exists(file_path + itemid):
         os.makedirs(file_path + itemid)
@@ -288,21 +242,25 @@ def main():
     f_result_top = open(file_path + itemid +
                         '/result_top.txt', 'w', encoding='UTF-8')
 
-    raw_data_list = []
-    result_list = []
+    try:
+        f_raw_data = open(file_path + itemid + '/raw_data.txt', 'r', encoding='UTF-8')
+    except Exception as err:
+        print(err)
+        return
+    
+    comments = list()
+    for line in f_raw_data:
+        raw_data_json = json.loads(line)
+        comments += raw_data_json['comments']
 
-    getRawData(file_path, raw_data_list)
-    # raw_data_list = json.loads(
-    #    open(file_path+itemid+'/raw_data.json', 'r', encoding='UTF-8').read())
+    k_max = getMaxKofD1(comments)
+    a_max = getMaxAofD2(comments)
+    b_max = getMaxBofD2(comments)
+    useful_total_num = getTotalUsefulNum(comments)
 
-    k_max = getMaxKofD1(raw_data_list)
-    a_max = getMaxAofD2(raw_data_list)
-    b_max = getMaxBofD2(raw_data_list)
-    useful_total_num = getTotalUsefulNum(raw_data_list)
-
-    # f_output.write('共{}条评论\n'.format(len(raw_data_list)))
     index = 1
-    for each in raw_data_list:
+    result_list = []
+    for each in comments:
         user_name = each['user']['nick']
         user_viplevel = each['user']['vipLevel']
         user_rank = each['user']['rank']
@@ -372,5 +330,5 @@ def main():
     f_output.close()
     f_result.close()
 
-
-main()
+if __name__ == '__main__':
+    main()
