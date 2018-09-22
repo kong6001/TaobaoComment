@@ -5,6 +5,8 @@ import json
 import os
 import re  # 正则
 import time
+import math
+import decimal
 from urllib import request
 import config
 
@@ -22,39 +24,37 @@ dic_l4 = ['上门', '安装', '师傅', '预约', '工人', '泡沫', '包装', 
 dic_l5 = ['满意', '性价比', '服务', '售前', '售后', '物美价廉', '值得', '不值',
           '实体店', '旗舰店', '下次', '质量', '划算', '耐心', '赠品', '品牌', '方便']
 
+state_word = ['啊', '哇', '哎', '唉', '呀', '哈']
+punctuation = ['？', '！', '……']
+
+attr_words = []
+opin_words = []
+
+
+def getAttrAndOpin():
+    try:
+        f_attr = open(file_path + itemid + '/attr.txt', 'r', encoding='UTF-8')
+        f_opin = open(file_path + itemid + '/opin.txt', 'r', encoding='UTF-8')
+    except Exception as err:
+        print(err)
+        return
+
+    attr_words = f_attr.readlines()
+    opin_words = f_opin.readlines()
+    f_attr.close()
+    f_opin.close()
+
+    for i in range(0, len(attr_words)):
+        attr_words[i] = attr_words[i].replace('\n', '')
+    for i in range(0, len(opin_words)):
+        opin_words[i] = opin_words[i].replace('\n', '')
+
 
 def getKeywordNumofComment(comment, dic_key_word):
     n = 0
     for item in dic_key_word:
         n += comment.count(item)
     return n
-
-
-def getH1(exp):
-    if exp > 0 and exp <= 3:
-        return 0
-    elif exp > 3 and exp <= 10:
-        return 0.316
-    elif exp > 10 and exp <= 40:
-        return 0.447
-    elif exp > 40 and exp <= 90:
-        return 0.548
-    elif exp > 90 and exp <= 150:
-        return 0.632
-    elif exp > 150 and exp <= 250:
-        return 0.707
-    elif exp > 251 and exp <= 500:
-        return 0.775
-    elif exp > 501 and exp <= 1000:
-        return 0.837
-    elif exp > 1001 and exp <= 2000:
-        return 0.894
-    elif exp > 2001 and exp <= 5000:
-        return 0.949
-    elif exp > 5000:
-        return 1
-    else:
-        return 0
 
 
 def getTotalUsefulNum(comments):
@@ -81,193 +81,96 @@ def getH2(useful_num, useful_total_num, param=1.2):
     else:
         return H2
 
-
-def getH3(comment_timestamp, t_gap=30, param=1):
-    t1 = time.time()
-    t2 = comment_timestamp
-    t_delta = int((t1 - t2)/(24*60*60))
-    if t_delta < 30:
-        t_delta = 30
-    elif t_delta > 360:
-        t_delta = 360
-
-    return (t_gap * param) / t_delta
+# 评论中最早的时间和当条评论日期差
 
 
-def getH4(comment_len):
+def getH3(comment_timestamp, most_early_comment_date):
+    return comment_timestamp/86400 - most_early_comment_date/86400
+
+# TODO:加入情感词关键词
+
+
+def getH4(comment, comment_len):
     if comment_len <= 10:
-        return 0.4
-    elif comment_len > 10 and comment_len <= 30:
-        return 0.6
-    elif comment_len > 30 and comment_len <= 40:
-        return 0.8
-    elif comment_len > 40 and comment_len <= 50:
-        return 0.9
-    elif comment_len > 50 and comment_len <= 80:
         return 1
-    elif comment_len > 80 and comment_len <= 90:
-        return 0.95
-    elif comment_len > 90 and comment_len <= 110:
-        return 0.9
-    elif comment_len > 110 and comment_len <= 150:
-        return 0.7
-    elif comment_len > 150 and comment_len <= 200:
-        return 0.5
-    else:
-        return 0.3
+    elif comment_len > 10 and comment_len <= 39:
+        return 2
+    elif comment_len >= 40 and comment_len <= 59:
+        return 3
+    elif comment_len >= 60 and comment_len <= 99:
+        return 2
+    elif comment_len >= 100:
+        return 1
+    # n1 = getKeywordNumofComment(comment, state_word)
+    # n2 = getKeywordNumofComment(comment, punctuation)
+    # if 0 == n1 or 0 == n2:
+    #     return 0
+
+    # return (math.log10(n1 + n2) / math.log10(n1))
 
 
 def getH5(pic_num):
     if pic_num <= 0:
-        return 0.5
-    elif pic_num > 0 and pic_num <= 2:
-        return 0.8
-    elif pic_num > 2 and pic_num <= 3:
         return 1
-    elif pic_num > 3 and pic_num <= 6:
-        return 0.8
-    elif pic_num > 6:
-        return 0.7
+    if pic_num >= 1 and pic_num <= 3:
+        return 2
+    if pic_num >= 4 and pic_num < 7:
+        return 3
+    if pic_num >= 7:
+        return 4
 
 
-def getKofD1(comment, v=[0.15, 0.25, 0.2, 0.15, 0.25]):
-    dics = [dic_l1, dic_l2, dic_l3, dic_l4, dic_l5]
-    n = []
-    for dic in dics:
-        n.append(getKeywordNumofComment(comment, dic))
-
-    k = 0
-    for i in range(len(n)):
-        k += (v[i] * n[i])
-
-    return k
+# 属性词匹配加1分
+def getD1(comment):
+    return getKeywordNumofComment(comment, attr_words)  # / k_max
 
 
-def getMaxKofD1(comments):
-    k_list = []
-    for item in comments:
-        content = item['content']
-        k_list.append(getKofD1(content))
-
-    return max(k_list)
-
-
-def getD1(comment, k_max):
-    return getKofD1(comment) / k_max
-
-
-def getAofD2(comment, param1=0.65, param2=0.35):
-    state_word = ['啊', '哇', '哎', '唉', '呀', '哈']
-    punctuation = ['？', '！', '……']
-    n1 = getKeywordNumofComment(comment, state_word)
-    n2 = getKeywordNumofComment(comment, punctuation)
-
-    return param1 * n1 + param2 * n2
-
-
-def getMaxAofD2(comments):
-    A_list = []
-    for item in comments:
-        A_list.append(getAofD2(item['content']))
-
-    return max(A_list)
-
-
-def getBofD2(comment, v=[0.15, 0.25, 0.3, 0.5]):
-    dic_l1 = ['稍', '多少', '有点', '有些', '略微', '稍微']
-    dic_l2 = ['很', '比较', '较为', '不太', '不打', '不很', '不甚']
-    dic_l3 = ['太', '挺', '满', '越', '更', '好', '大', '特别',
-              '甚至', '更加', '尤其', '越发', '十分', '非常', '格外']
-    dic_l4 = ['最', '极', '顶', '无比', '最为', '极其', '万分']
-    dics = [dic_l1, dic_l2, dic_l3, dic_l4]
-    n = []
-    for dic in dics:
-        n.append(getKeywordNumofComment(comment, dic))
-
-    B = 0
-    for i in range(len(n)):
-        B += (v[i] * n[i])
-    return B
-
-
-def getMaxBofD2(comments):
-    B_list = []
-    for item in comments:
-        B_list.append(getBofD2(item['content']))
-
-    return max(B_list)
-
-
-def getD2(comment, A_max, B_max):
-    A_part = getAofD2(comment) / A_max
-    B_part = getBofD2(comment)/B_max
-    return (A_part+B_part)/2
-
-
-def getD3(comment, append, gamma=3, fai=10):
-    W0 = len(comment)
-    Wadd = 0
-    if any(append):
-        Wadd = len(append['content'])
-    if 0 == Wadd:
-        return 0
-
-    ratio = W0/Wadd
-
-    Nadd = 0
-    dics = [dic_l1, dic_l2, dic_l3, dic_l4]
-    for dic in dics:
-        Nadd += getKeywordNumofComment(append['content'], dic)
-
-    if 0 == Nadd:
-        return 0
-
-    if ratio > gamma or ratio < (1 / gamma):
-        return 1
-    else:
-        if Nadd > fai:
-            return 1
-        else:
-            return Nadd/fai
+# 观点词匹配加1分
+def getD2(comment):
+    return getKeywordNumofComment(comment, opin_words)
 
 
 def main():
     if not os.path.exists(file_path + itemid):
         os.makedirs(file_path + itemid)
 
-    f_output = open(file_path + itemid + '/output.txt', 'w', encoding='UTF-8')
-    f_result = open(file_path + itemid + '/result.txt', 'w', encoding='UTF-8')
-    f_result_review = open(file_path + itemid +
-                           '/result_for_review.txt', 'w', encoding='UTF-8')
-    f_result_top = open(file_path + itemid +
-                        '/result_top.txt', 'w', encoding='UTF-8')
+    getAttrAndOpin()
 
+    f_output = open(file_path + itemid + '/output.txt', 'w', encoding='UTF-8')
+    f_content = open(file_path+itemid+'/content.txt', 'w', encoding='UTF-8')
+    f_scores = open(file_path+itemid+'/scores.txt', 'w', encoding='UTF-8')
     try:
-        f_raw_data = open(file_path + itemid + '/raw_data.txt', 'r', encoding='UTF-8')
+        f_raw_data = open(file_path + itemid +
+                          '/raw_data.txt', 'r', encoding='UTF-8')
     except Exception as err:
         print(err)
         return
-    
+
     comments = list()
     for line in f_raw_data:
         raw_data_json = json.loads(line)
         comments += raw_data_json['comments']
 
-    k_max = getMaxKofD1(comments)
-    a_max = getMaxAofD2(comments)
-    b_max = getMaxBofD2(comments)
     useful_total_num = getTotalUsefulNum(comments)
 
-    index = 1
-    result_list = []
     for each in comments:
         user_name = each['user']['nick']
         user_viplevel = each['user']['vipLevel']
         user_rank = each['user']['rank']
         content = each['content']
+        # if ('此用户没有填写评价' not in content) and len(content)<256:
+        #     f_content.write(content+'。')
+        f_content.write(content+'\n')
         date = each['date'].replace(
             '年', '-').replace('月', '-').replace('日', '')
-        timestamp = time.mktime(time.strptime(date, '%Y-%m-%d %H:%M'))
+        date = date[:10]
+        if len(date) != 0:
+            timestamp = time.mktime(time.strptime(date, '%Y-%m-%d'))
+            if most_early_comment_date > timestamp:
+                most_early_comment_date = timestamp
+        else:
+            timestamp = 0
+
         pic_num = len(each['photos'])
         useful = each['useful']
         f_output.write('用户名：' + user_name + '\t')
@@ -282,53 +185,38 @@ def main():
         if any(append_comment):
             append_comment = append_comment[0]
             append_content = append_comment['content']
+            # if ('此用户没有填写评价' not in append_content)and len(append_content)<256:
+            #     f_content.write(append_content+'。')
             append_time = append_comment['dayAfterConfirm']
             append_pic_num = len(append_comment['photos'])
             f_output.write('追评：'+append_content+'\t')
             f_output.write('追评时间：'+str(append_time)+' 天后'+'\t')
             f_output.write('追评图片数：' + str(append_pic_num) + '\t')
 
-        H1 = getH1(user_rank)
         H2 = getH2(useful, useful_total_num)
-        H3 = getH3(timestamp)
-        H4 = getH4(len(content))
+        H3 = getH3(timestamp, most_early_comment_date)
+        H4 = getH4(content, len(content))
         H5 = getH5(pic_num)
-        D1 = getD1(content, k_max)
-        D2 = getD2(content, a_max, b_max)
-        D3 = getD3(content, append_comment)
+        D1 = getD1(content)
+        D2 = getD2(content)
 
-        M1 = 0.2 * (H1 + H2 + H3 + H4 + H5)
-        M2 = 0.3 * D1 + 0.5 * D2 + 0.2 * D3
+        f_scores.write(str(decimal.Decimal(H4).quantize(
+            decimal.Decimal('0.00'))) + '\t')
+        f_scores.write(str(decimal.Decimal(H3).quantize(
+            decimal.Decimal('0.00'))) + '\t')
+        f_scores.write(str(decimal.Decimal(H2).quantize(
+            decimal.Decimal('0.00'))) + '\t')
+        f_scores.write(str(decimal.Decimal(H5).quantize(
+            decimal.Decimal('0.00'))) + '\t')
+        f_scores.write(str(decimal.Decimal(D1).quantize(
+            decimal.Decimal('0.00'))) + '\t')
+        f_scores.write(str(decimal.Decimal(D2).quantize(
+            decimal.Decimal('0.00'))) + '\t')
 
-        result = M1+0.5*M2
-        result_tuple = (result, index)
-        result_list.append(result_tuple)
+        f_scores.write('\n')
 
-        f_output.write('H1:'+str(H1)+'\t')
-        f_output.write('H2:'+str(H2)+'\t')
-        f_output.write('H3:'+str(H3)+'\t')
-        f_output.write('H4:'+str(H4)+'\t')
-        f_output.write('H5:'+str(H5)+'\t')
-        f_output.write('D1:'+str(D1)+'\t')
-        f_output.write('D2:'+str(D2)+'\t')
-        f_output.write('D3:' + str(D3) + '\t')
-        f_output.write('M1:{}'.format(M1) + '\t')
-        f_output.write('M2:{}'.format(M2)+'\t')
-        f_output.write('result:{}'.format(result)+'\t')
-        f_output.write('\n')
+    f_scores.close()
 
-        f_result.write(str(result)+'\n')
-        f_result_review.write(str(round(M1, 2)) + " " +
-                              str(round(M2, 2)) + "\n")
-        index += 1
-
-    result_list = sorted(result_list, reverse=True)
-    for result_tuple in result_list:
-        f_result_top.write(str(result_tuple) + '\n')
-
-    f_result_top.close()
-    f_output.close()
-    f_result.close()
 
 if __name__ == '__main__':
     main()
