@@ -81,15 +81,13 @@ def getH2(useful_num, useful_total_num, param=1.2):
     else:
         return H2
 
+
 # 评论中最早的时间和当条评论日期差
-
-
 def getH3(comment_timestamp, most_early_comment_date):
     return comment_timestamp/86400 - most_early_comment_date/86400
 
+
 # TODO:加入情感词关键词
-
-
 def getH4(comment, comment_len):
     if comment_len <= 10:
         return 1
@@ -153,6 +151,7 @@ def main():
 
     useful_total_num = getTotalUsefulNum(comments)
 
+    most_early_comment_date = 999999999999999
     for each in comments:
         user_name = each['user']['nick']
         user_viplevel = each['user']['vipLevel']
