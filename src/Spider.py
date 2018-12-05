@@ -16,7 +16,10 @@ file_path = config.file_path
 
 
 def get_random_ip(proxy_list):
+    if len(proxy_list) == 0:
+        return None
     proxy_ip = random.choice(proxy_list)
+    proxy_list.remove(proxy_ip)
     proxies = {'http': 'http://' + proxy_ip.rstrip('\n'),
                'https': 'https://' + proxy_ip.rstrip('\n')}
     return proxies
@@ -41,7 +44,8 @@ def getRawData(file_path, raw_data, itemid):
             url = ('https://rate.taobao.com/feedRateList.htm?auctionNumId=' +
                    itemid + '&currentPageNum={}').format(current_page)
             byte = requests.get(url, headers=headers,
-                                proxies=proxies, timeout=10)
+                                proxies=proxies,
+                                timeout=10)
             string = byte._content.decode('UTF-8')
 
             string = re.sub('[\r\t\n]', '', string)
@@ -55,12 +59,14 @@ def getRawData(file_path, raw_data, itemid):
             print('抓取第{}页出现问题:'.format(current_page) + str(err))
             err_page.append(current_page)
             proxies = get_random_ip(proxy_list)
+            if proxies == None:
+                break
             continue
 
         current_page = current_page + 1
         if (current_page > max_page):
             break
-        time.sleep(1)
+        time.sleep(10)
 
     print('抓取完毕\n')
     if any(err_page):
