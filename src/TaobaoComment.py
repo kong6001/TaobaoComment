@@ -1,15 +1,18 @@
 # coding=utf-8
 
 from __future__ import unicode_literals  # 解决json.dumps的中文乱码问题
+
+import decimal
 import json
+import math
 import os
 import re  # 正则
 import time
-import math
-import decimal
 from urllib import request
-import config
+
 import jieba
+
+import config
 
 itemid = config.itemid
 file_path = config.file_path
@@ -82,7 +85,7 @@ def getNormalScore(x, u =0, d=1 ):
     f = (1/ (math.sqrt(2*math.pi)*d))*math.exp(-(x-u)*(x-u)/(2*d*d))
     return f
 
-
+#评论长度
 def getLenScore(len):
     score = 0
     if len >= 50 and len < 70:
@@ -123,7 +126,7 @@ def getLevelScore(comment):
         score = max_score
     return score / max_score
         
-
+#情感词
 def getFeelScore(comment):
     max_score = 50
     score = 0
