@@ -156,10 +156,6 @@ def getOScore(comment):
     for word in words:
         if word in owords:
             score += 1
-        # if word in config.wo2:
-        #     score += 1
-        # if word in config.wo3:
-        #     score += 1
             
     if score > max_score:
         score = max_score
@@ -171,7 +167,6 @@ def main():
         os.makedirs(file_path + itemid)
 
 
-    # f_output = open(file_path + itemid + '/output.txt', 'w', encoding='UTF-8')
     f_scores = open(file_path+itemid+'/scores.txt', 'w', encoding='UTF-8')
     try:
         f_raw_data = open(file_path + itemid +
@@ -265,14 +260,6 @@ def main():
 
     comment_score_list = comment_score_list[0:100]
     orig_comment_score_list = comment_score_list
-    
-    # first_comment_list = orig_comment_score_list[0:10]
-    # second_comment_list = orig_comment_score_list[10:20]
-    # third_comment_list = orig_comment_score_list[20:]
-
-    # second_comment_list.sort(key=lambda a: a[2], reverse=True)
-    # comment_score_list = list()
-    # comment_score_list = first_comment_list + second_comment_list + third_comment_list
     
     f_origin_content = open(file_path + itemid + u'/按照默认排序的评论内容.txt', 'w', encoding='UTF-8')
     f_origin_score = open(file_path+itemid+'/按照默认排序的得分情况.txt', 'w', encoding='UTF-8')
