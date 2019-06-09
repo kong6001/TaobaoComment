@@ -1,12 +1,12 @@
-# coding=utf-8
+# coding=GBK
 
-from __future__ import unicode_literals  # è§£å†³json.dumpsçš„ä¸­æ–‡ä¹±ç é—®é¢˜
+from __future__ import unicode_literals  # ½â¾öjson.dumpsµÄÖĞÎÄÂÒÂëÎÊÌâ
 
 import decimal
 import json
 import math
 import os
-import re  # æ­£åˆ™
+import re  # ÕıÔò
 import time
 from urllib import request
 
@@ -14,8 +14,6 @@ import jieba
 
 import config
 
-itemid = config.itemid
-file_path = config.file_path
 len_avg = config.len_avg
 len_variance = config.len_variance
 
@@ -26,14 +24,15 @@ for file in file_list:
     f = open('feelwords/' + file, 'r+', encoding='GBK')
     words = f.readlines()
     for word in words:
-        feelwords.append(word.strip())
+        if word != "\n":
+            feelwords.append(word.strip())
 
 owords = set(config.wo1)
 owords=owords|set(config.wo2)
 owords=owords|set(config.wo3)
 
 
-#å¯ä¿¡åº¦
+#¿ÉĞÅ¶È
 def getCredibilityScore(user_name, rank):
     score=0
     if '**' in user_name:
@@ -67,25 +66,25 @@ def getCredibilityScore(user_name, rank):
     return score
 
 
-#æ—¶æ•ˆæ€§
+#Ê±Ğ§ĞÔ
 def getTimelinessScore(time_stamp, most_early_timestamp):
     today_timestamp = time.time()
     return (time_stamp-most_early_timestamp) / (today_timestamp - most_early_timestamp)
 
 
-#é˜…è¯»åé¦ˆ
+#ÔÄ¶Á·´À¡
 def getCallbackScore(useful_num, max_useful_num):
     if max_useful_num>0:
         return useful_num/max_useful_num
     else:
         return 0
 
-#æ­£æ€ï¼Œuå‡å€¼ï¼Œdæ ‡å‡†å·®
+#ÕıÌ¬£¬u¾ùÖµ£¬d±ê×¼²î
 def getNormalScore(x, u =0, d=1 ):
     f = (1/ (math.sqrt(2*math.pi)*d))*math.exp(-(x-u)*(x-u)/(2*d*d))
     return f
 
-#è¯„è®ºé•¿åº¦
+#ÆÀÂÛ³¤¶È
 def getLenScore(len):
     score = 0
     if len >= 50 and len < 70:
@@ -100,14 +99,14 @@ def getLenScore(len):
     return score
         
 
-#å›¾ç‰‡æ•°é‡
+#Í¼Æ¬ÊıÁ¿
 def getPicScore(pic_num, max_pic_num):
     if max_pic_num != 0:
         return pic_num / max_pic_num
     return 0
 
 
-#ç¨‹åº¦çº§åˆ«
+#³Ì¶È¼¶±ğ
 def getLevelScore(comment):
     max_score = 15
     score = 0
@@ -126,7 +125,7 @@ def getLevelScore(comment):
         score = max_score
     return score / max_score
         
-#æƒ…æ„Ÿè¯
+#Çé¸Ğ´Ê
 def getFeelScore(comment):
     max_score = 50
     score = 0
@@ -162,15 +161,14 @@ def getOScore(comment):
     return score / max_score
 
 
-def main():
+def statistic(itemid, file_path):
     if not os.path.exists(file_path + itemid):
         os.makedirs(file_path + itemid)
 
-
-    f_scores = open(file_path+itemid+'/scores.txt', 'w', encoding='UTF-8')
+    f_scores = open(file_path+itemid+'/scores.txt', 'w', encoding='GBK')
     try:
         f_raw_data = open(file_path + itemid +
-                          '/raw_data.txt', 'r', encoding='UTF-8')
+                          '/raw_data.txt', 'r', encoding='GBK')
     except Exception as err:
         print(err)
         return
@@ -181,18 +179,18 @@ def main():
         comments += raw_data_json['comments']
     f_raw_data.close()
 
-    #åªå–xæ¡
+    #Ö»È¡xÌõ
     # x = 50
     # comments = comments[:x]
 
-    #å–æœ€æ—©æ—¶é—´ã€æœ€å¤§å›¾ç‰‡æ•°
+    #È¡×îÔçÊ±¼ä¡¢×î´óÍ¼Æ¬Êı
     most_early_comment_date = 999999999999999
     max_pic_num = 0
     max_useful_num = 0
 
     for each in comments:
         date = each['date'].replace(
-            'å¹´', '-').replace('æœˆ', '-').replace('æ—¥', '')
+            'Äê', '-').replace('ÔÂ', '-').replace('ÈÕ', '')
         date = date[:10]
         if len(date) != 0:
             timestamp = time.mktime(time.strptime(date, '%Y-%m-%d'))
@@ -209,6 +207,7 @@ def main():
             max_useful_num = useful
 
 
+    #¶ÔËùÓĞÆÀÂÛ½øĞĞ¼ÆËã·ÖÊı
     comment_score_list = list()
     index = 1
     max_score = 0
@@ -218,12 +217,12 @@ def main():
         user_rank = each['user']['rank']
         content = each['content'].strip()
         content_split = ' '.join(jieba.cut(content))
-        # if ('æ­¤ç”¨æˆ·æ²¡æœ‰å¡«å†™è¯„ä»·' not in content) and len(content)<256:
-        #     f_content.write(content+'ã€‚')
+        # if ('´ËÓÃ»§Ã»ÓĞÌîĞ´ÆÀ¼Û' not in content) and len(content)<256:
+        #     f_content.write(content+'¡£')
         #f_content.write(content+'\n')
         timestamp = 0
         date = each['date'].replace(
-            'å¹´', '-').replace('æœˆ', '-').replace('æ—¥', '')
+            'Äê', '-').replace('ÔÂ', '-').replace('ÈÕ', '')
         date = date[:10]
         if len(date) != 0:
             timestamp = time.mktime(time.strptime(date, '%Y-%m-%d'))
@@ -233,75 +232,101 @@ def main():
         useful = each['useful']
 
         score_list = list()
-        weight_list = [0.188775, 0.111426, 0.100004,0.088374,0.133871,0.188775, 0.188775]
+        #weight_list = [0.188775, 0.111426, 0.040004,0.108374,0.133871,0.208775, 0.208775]
+        weight_list = [0.10, 0.10, 0.00,0.30,0.30,0.10, 0.10]
         score_list.append(getCredibilityScore(user_name,user_rank))
         score_list.append(getTimelinessScore(timestamp, most_early_comment_date))
         score_list.append(getCallbackScore(useful, max_useful_num))
         score_list.append(getLenScore(len(content)))
         score_list.append(getPicScore(pic_num, max_pic_num))
         #score_list.append(getLevelScore(content_split))
-        score_list.append(getFeelScore(content_split))
         score_list.append(getOScore(content_split))
+        score_list.append(getFeelScore(content_split))
 
         total_score =0
         score_str = ''
         for i in range(0, len(score_list)):
             score = score_list [i]
-            score_str += str(decimal.Decimal(score).quantize(decimal.Decimal('0.000'))) + '\t'
+            score_str += str(decimal.Decimal(score).quantize(decimal.Decimal('0.000'))) + ','
             total_score += (score * weight_list[i])
 
-        if 'æ­¤ç”¨æˆ·æ²¡æœ‰å¡«å†™è¯„ä»·' in content or 'ç³»ç»Ÿé»˜è®¤å¥½è¯„' in content:
+        if '´ËÓÃ»§Ã»ÓĞÌîĞ´ÆÀ¼Û' in content or 'ÏµÍ³Ä¬ÈÏºÃÆÀ' in content:
             total_score = 0
 
+        content = content.replace(',' , "£¬")
         comment_score_list.append((content, score_str, total_score,index))
         index+=1
 
     f_scores.close()
 
-    comment_score_list = comment_score_list[0:100]
-    orig_comment_score_list = comment_score_list
-    
-    f_origin_content = open(file_path + itemid + u'/æŒ‰ç…§é»˜è®¤æ’åºçš„è¯„è®ºå†…å®¹.txt', 'w', encoding='UTF-8')
-    f_origin_score = open(file_path+itemid+'/æŒ‰ç…§é»˜è®¤æ’åºçš„å¾—åˆ†æƒ…å†µ.txt', 'w', encoding='UTF-8')
-    f_sorted_content = open(file_path+itemid+'/æ–°æ’åºçš„è¯„è®ºå†…å®¹.txt', 'w', encoding='UTF-8')
-    f_sorted_score = open(file_path+itemid+'/æ–°æ’åºçš„å¾—åˆ†æƒ…å†µ.txt', 'w', encoding='UTF-8')
-    f_change = open(file_path+itemid+'/change.txt', 'w', encoding='UTF-8')
-    f_change_noscore = open(file_path + itemid + '/change_noscore.txt', 'w', encoding='UTF-8')
-
-    f_sorted_score.write('æ–°åæ¬¡\tå¯ä¿¡åº¦\tæ—¶æ•ˆæ€§\tæœ‰ç”¨æ€§\tè¯„è®ºé•¿åº¦\tå›¾ç‰‡\tæƒ…æ„Ÿè¯\tå±æ€§è¯\tæ€»åˆ†\tåŸåæ¬¡\n')
-    for item in orig_comment_score_list:
-        total_score = str(decimal.Decimal(item[2]).quantize(decimal.Decimal('0.000')))
-        f_origin_content.write(str(item[3]) +'\t' +total_score +'\t'+ str(item[0])+'\n')
-        f_origin_score.write(str(item[1]) + '\t' + total_score + '\n')
-
-    #(content, score_str, total_score,index)
-    comment_score_list.sort(key=lambda comment_score: comment_score[2], reverse=True)
-    index = 1
-    for item in comment_score_list:
-        total_score = str(decimal.Decimal(item[2]).quantize(decimal.Decimal('0.000')))
-        f_sorted_content.write(str(item[3]) +'\t' +total_score +'\t'+str(item[0])+'\n')
-        f_sorted_score.write(str(index)+'\t'+str(item[1]) + '\t' + total_score + '\t'+str(item[3])+ '\n')
-        f_change.write(str(item[3]) + '\t' + str(index) + '\t' + total_score+'\n')
-        f_change_noscore.write(str(item[3]) + '\t' + str(index) + '\n')
+    max_page = len(comment_score_list) / 100
+    for i in range(0, int(max_page)):
+        total_list = list()
+        #¶ÔÇ°100ÌõÆÀÂÛ½øĞĞÅÅĞò
+        comment_score_list_100 = comment_score_list[i*100: i*100+100]
+        orig_comment_score_list_100 = comment_score_list_100
         
-        comment_score_list[index-1] = (item, index)
-        index += 1
-        
-    f_orgin_content2 = open(file_path + itemid + '/origin_content2.txt', 'w', encoding='UTF-8')
-    f_orgin_score2 = open(file_path + itemid + '/æŒ‰ç…§é»˜è®¤æ’åºçš„å¾—åˆ†æƒ…å†µä»¥åŠæ–°æ’åºåæ¬¡.txt', 'w', encoding='UTF-8')
+        f_origin_content = open(file_path + itemid + '/°´ÕÕÄ¬ÈÏÅÅĞòµÄÆÀÂÛÄÚÈİ.csv', 'w', encoding='GBK')
+        f_origin_score = open(file_path+itemid+'/°´ÕÕÄ¬ÈÏÅÅĞòµÄµÃ·ÖÇé¿ö.txt', 'w', encoding='GBK')
+        f_sorted_content = open(file_path+itemid+'/ĞÂÅÅĞòµÄÆÀÂÛÄÚÈİ.txt', 'w', encoding='GBK')
+        f_sorted_score = open(file_path+itemid+'/ĞÂÅÅĞòµÄµÃ·ÖÇé¿ö.csv', 'w', encoding='GBK')
 
-    f_orgin_score2.write('åŸåæ¬¡\tå¯ä¿¡åº¦\tæ—¶æ•ˆæ€§\tæœ‰ç”¨æ€§\tè¯„è®ºé•¿åº¦\tå›¾ç‰‡\tæƒ…æ„Ÿè¯\tå±æ€§è¯\tæ€»åˆ†\tæ–°åæ¬¡\n')
-    comment_score_list.sort(key=lambda comment_score: comment_score[0][3], reverse=False)
-    for item in comment_score_list:
-        sorted_index = item[1]
-        item =  item[0]
-        total_score = str(decimal.Decimal(item[2]).quantize(decimal.Decimal('0.000')))
-        f_orgin_content2.write(str(sorted_index) +'\t' +total_score +'\t'+str(item[0])+'\n')
-        f_orgin_score2.write(str(item[3]) + '\t' + str(item[1]) + '\t' + total_score +'\t'+str(sorted_index)+ '\n')
-        index += 1
+        #(content, score_str, total_score,index)
+        for item in orig_comment_score_list_100:
+            total_score = str(decimal.Decimal(item[2]).quantize(decimal.Decimal('0.000')))
+            #Ä¬ÈÏ±êºÅ£¬ÎÄ±¾£¬Ö¸±ê£¬Á¿»¯×ÜÖµ
+            f_origin_content.write(str(item[3]) +',' + str(item[0]) +',' + str(item[1]) +total_score  +'\n')
+            #f_origin_score.write(str(item[1]) + ',' + total_score + '\n')
+            total_list.append(str((item[3]-1)%100 +1) +',' + str(item[0]) +',' + str(item[1]) +total_score)
 
+        #(content, score_str, total_score,index)
+        tmp_list = list()
+        f_sorted_score.write('ĞÂÃû´Î,ÄÚÈİ,¿ÉĞÅ¶È,Ê±Ğ§ĞÔ,ÓĞÓÃĞÔ,ÆÀÂÛ³¤¶È,Í¼Æ¬,ÊôĞÔ´Ê,Çé¸Ğ´Ê,×Ü·Ö,Ô­Ãû´Î\n')
+        comment_score_list_100.sort(key=lambda comment_score: comment_score[2], reverse=True)#°´×Ü·Ö½µĞò
+        index = 1
+        for item in comment_score_list_100:
+            total_score = str(decimal.Decimal(item[2]).quantize(decimal.Decimal('0.000')))
+            #f_sorted_content.write(str(item[3]) +',' +total_score +','+str(item[0])+'\n')
+            #±¾ÎÄÅÅĞò£¬Ä¬ÈÏÅÅĞò£¬Á¿»¯Öµ
+            f_sorted_score.write(str(index)  + ','+str(item[3]) + ',' + total_score + '\n')
+            
+            comment_score_list_100[index-1] = (item, index)
+            tmp_list.append("," + str(index)  + ','+str((item[3]-1)%100 +1) + ',' + total_score + '\n')
+            index += 1
+            
+        f_orgin_content2 = open(file_path + itemid + '/origin_content2.txt', 'w', encoding='GBK')
+        f_orgin_score2 = open(file_path + itemid + '/°´ÕÕÄ¬ÈÏÅÅĞòµÄµÃ·ÖÇé¿öÒÔ¼°ĞÂÅÅĞòÃû´Î.csv', 'w', encoding='GBK')
 
-    f_sorted_content.close()
+        #(content, score_str, total_score,index)
+        f_orgin_score2.write('Ô­Ãû´Î,ÄÚÈİ,¿ÉĞÅ¶È,Ê±Ğ§ĞÔ,ÓĞÓÃĞÔ,ÆÀÂÛ³¤¶È,Í¼Æ¬,ÊôĞÔ´Ê,Çé¸Ğ´Ê,×Ü·Ö,ĞÂÃû´Î\n')
+        comment_score_list_100.sort(key=lambda comment_score: comment_score[0][3], reverse=False)
+        index = 1
+        for item in comment_score_list_100:
+            sorted_index = item[1]
+            item =  item[0]
+            total_score = str(decimal.Decimal(item[2]).quantize(decimal.Decimal('0.000')))
+            #f_orgin_content2.write(str(item[0]) +','+str(item[3]) + ',' +total_score +'\n')
+            #Ä¬ÈÏÅÅĞò£¬±¾ÎÄÅÅĞò£¬Á¿»¯Öµ
+            f_orgin_score2.write(str(index) +"," + str(sorted_index)  +','+ total_score + '\n')
+            total_list[index-1] += ("," + str(index) +"," + str(sorted_index)  +','+ total_score)
+            total_list[index-1] += tmp_list[index - 1]
+            index += 1
+
+        f_sorted_content.close()
+
+        f_total = open(file_path + itemid + '/total'+itemid+"_" + str(i)+".csv", 'w+', encoding='GBK')
+        f_total.close()
+        f_total = open(file_path + itemid + '/total'+itemid+"_"+ str(i)+".csv", 'a+', encoding='GBK')
+        f_total.write(",,ÆÀÂÛÓĞÓÃĞÔÁ¿»¯ÌØÕ÷\n")
+        f_total.write(",,ÆÀÂÛÕß¿ÉĞÅ¶ÈÖ¸±ê,ÆÀÂÛÊ±Ğ§ĞÔÖ¸±ê,ÆÀÂÛÕß·´À¡Ö¸±ê,ÆÀÂÛ³¤¶ÈÖ¸±ê,Í¼Æ¬ÊıÁ¿Ö¸±êÆÀ,ÆÀÂÛÈ«ÃæĞÔÖ¸±ê,ÆÀÂÛ¸ĞÈ¾Á¦Ö¸±ê,\n")
+        f_total.write("Ä¬ÈÏ±êºÅ,ÆÀÂÛÎÄ±¾ÄÚÈİ,T1,T2,T3,T4,T5,T6,T7,Á¿»¯×ÜÖµ,Ä¬ÈÏÅÅĞò,±¾ÎÄÅÅĞò,Á¿»¯Öµ,±¾ÎÄÅÅĞò,Ä¬ÈÏÅÅĞò,Á¿»¯Öµ\n")
+        for item in total_list:
+            f_total.write(item)
+        f_total.close()
+
 
 if __name__ == '__main__':
-    main()
+    itemid_list = config.itemid_list
+    file_path = config.file_path
+    for itemid in itemid_list:
+        statistic(itemid, file_path)
