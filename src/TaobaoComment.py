@@ -40,9 +40,9 @@ def getCredibilityScore(user_name, rank):
     else:
         score += 0.5
 
-    if rank > 5000:
+    if rank >= 5000:
         score += 1
-    elif rank <= 5000 and rank > 2000:
+    elif rank < 5000 and rank >= 2000:
         score += 0.9
     elif rank < 2000 and rank >=1000:
         score += 0.8
@@ -62,6 +62,9 @@ def getCredibilityScore(user_name, rank):
         score += 0.1
     elif rank < 4:
         score += 0
+
+    if score > 1:
+        score = 1
         
     return score
 
