@@ -152,7 +152,7 @@ def getFeelScore(comment):
 
 
 def getOScore(comment):
-    max_score = 30
+    max_score = 15
     score = 0
     words = comment.split(' ')
     for word in words:
@@ -164,22 +164,23 @@ def getOScore(comment):
     return score / max_score
 
 
-def statistic(itemid, file_path):
+def statistic(raw_data_file_name, file_path):
+    itemid = "result"
     if not os.path.exists(file_path + itemid):
         os.makedirs(file_path + itemid)
 
     f_scores = open(file_path+itemid+'/scores.txt', 'w', encoding='GBK')
     try:
-        f_raw_data = open(file_path + itemid +
-                          '/raw_data.txt', 'r', encoding='GBK')
+        f_raw_data = open(file_path + '/'+raw_data_file_name, 'r', encoding='GBK')
     except Exception as err:
         print(err)
         return
 
     comments = list()
     for line in f_raw_data:
-        raw_data_json = json.loads(line)
-        comments += raw_data_json['comments']
+        line = line.rstrip()
+        raw_data_json = eval(line)
+        comments.append(raw_data_json)
     f_raw_data.close()
 
     #只取x条
@@ -220,9 +221,6 @@ def statistic(itemid, file_path):
         user_rank = each['user']['rank']
         content = each['content'].strip()
         content_split = ' '.join(jieba.cut(content))
-        # if ('此用户没有填写评价' not in content) and len(content)<256:
-        #     f_content.write(content+'。')
-        #f_content.write(content+'\n')
         timestamp = 0
         date = each['date'].replace(
             '年', '-').replace('月', '-').replace('日', '')
@@ -253,9 +251,6 @@ def statistic(itemid, file_path):
             score_str += str(decimal.Decimal(score).quantize(decimal.Decimal('0.000'))) + ','
             total_score += (score * weight_list[i])
 
-        if '此用户没有填写评价' in content or '系统默认好评' in content:
-            total_score = 0
-
         content = content.replace(',' , "，")
         comment_score_list.append((content, score_str, total_score,index))
         index+=1
@@ -264,6 +259,7 @@ def statistic(itemid, file_path):
 
     max_page = len(comment_score_list) / 100
     for i in range(0, int(max_page)):
+        print("page: "+ str(i))
         total_list = list()
         #对前100条评论进行排序
         comment_score_list_100 = comment_score_list[i*100: i*100+100]
@@ -294,7 +290,7 @@ def statistic(itemid, file_path):
             f_sorted_score.write(str(index)  + ','+str(item[3]) + ',' + total_score + '\n')
             
             comment_score_list_100[index-1] = (item, index)
-            tmp_list.append("," + str(index)  + ','+str((item[3]-1)%100 +1) + ',' + total_score + '\n')
+            tmp_list.append("," + str(index)  + ','+str((item[3]-1)%100 +1) + ',' + total_score+ ','+item[0] + '\n')
             index += 1
             
         f_orgin_content2 = open(file_path + itemid + '/origin_content2.txt', 'w', encoding='GBK')
@@ -308,7 +304,6 @@ def statistic(itemid, file_path):
             sorted_index = item[1]
             item =  item[0]
             total_score = str(decimal.Decimal(item[2]).quantize(decimal.Decimal('0.000')))
-            #f_orgin_content2.write(str(item[0]) +','+str(item[3]) + ',' +total_score +'\n')
             #默认排序，本文排序，量化值
             f_orgin_score2.write(str(index) +"," + str(sorted_index)  +','+ total_score + '\n')
             total_list[index-1] += ("," + str(index) +"," + str(sorted_index)  +','+ total_score)
@@ -331,5 +326,5 @@ def statistic(itemid, file_path):
 if __name__ == '__main__':
     itemid_list = config.itemid_list
     file_path = config.file_path
-    for itemid in itemid_list:
-        statistic(itemid, file_path)
+    # for itemid in itemid_list:
+    statistic("set_shoe.txt", file_path)
